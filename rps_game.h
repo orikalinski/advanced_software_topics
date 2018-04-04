@@ -29,7 +29,7 @@ public:
 
     void handleElapsedCell(int X, int Y);
 
-    int handleElapsedCells();
+    void handleElapsedCells();
 
     int compareBetweenTwoPieces(board_piece board_piece_1, board_piece board_piece_2);
 

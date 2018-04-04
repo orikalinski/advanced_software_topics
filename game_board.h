@@ -64,7 +64,7 @@ public:
 
     void emptyCell(int X, int Y);
 
-    bool updateBoardValidity();
+    void updateBoardValidity();
 
     bool validateMovementRow(int from_X, int from_Y, int to_X, int to_Y);
 

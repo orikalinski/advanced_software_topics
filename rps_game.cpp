@@ -67,7 +67,7 @@ void rps_game::handleElapsedCell(int X, int Y) {
         player_1_board->emptyCell(X, Y);
 }
 
-int rps_game::handleElapsedCells() {
+void rps_game::handleElapsedCells() {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < M; j++) {
             handleElapsedCell(j, i);

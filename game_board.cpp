@@ -338,7 +338,7 @@ bool game_board::checkZeroMovingPieces() {
     return false;
 }
 
-bool game_board::updateBoardValidity() {
+void game_board::updateBoardValidity() {
     this->is_board_valid = !checkZeroFlags() && !checkZeroMovingPieces();
 }
 
@@ -358,4 +358,5 @@ string game_board::getReasonString() {
         case bad_position: return "Bad Positioning input file - line: " + line_number;
         case bad_move: return "Bad Moves input file - line: " + line_number;
     }
+    return "";
 }
