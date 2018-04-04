@@ -36,6 +36,10 @@ public:
     int getWinner();
 
     void writeOutputFile(const string &output_file_path, int winner);
+
+    string getReasonRepr();
+
+    stringstream getReasonRepr(int winner);
 };
 
 

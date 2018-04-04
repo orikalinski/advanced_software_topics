@@ -85,19 +85,59 @@ string nextLine(std::ifstream &stream_file) {
     return line;
 }
 
-void rps_game::writeOutputFile(const string &output_file_path, int winner) {
-    ofstream outputFile(output_file_path);
-    outputFile << "Winner: " << winner << std::endl;
-    outputFile << "Reason: ";
-    if (winner == 1)
-        switch (player_2_board->getReason()) {
-            case flags:
+stringstream rps_game::getReasonRepr(int winner) {
+    std::stringstream return_string;
+    int player_1_reason = player_1_board->getReason();
+    int player_2_reason = player_2_board->getReason();
+    int looser = winner == 1 ? 2 : 1;
+    int line_number = looser == 1 ? player_1_board->getLineNumber() : player_2_board->getLineNumber();
+    if (winner == 0) {
+        if (player_1_reason == player_2_reason) {
+            if (player_1_reason == valid)
+                return_string << "A tie - both Moves input files done without a winner";
+            else if (player_1_reason == flags)
+                return_string << "A tie - all flags are eaten by both players in the position files";
+            else if (player_1_reason == bad_position)
+                return_string << "Bad Positioning input file for both players - player 1: line " <<
+                              player_1_board->getLineNumber() << ", player 2: line " << player_2_board->getLineNumber();
         }
+    }
+    else if (player_1_reason == flags || player_2_reason == flags)
+        return_string << "All flags of the opponent are captured";
+    else if (player_1_reason == moving_pieces || player_2_reason == moving_pieces)
+        return_string << "All moving PIECEs of the opponent are eaten";
+    else if (player_1_reason == bad_position || player_2_reason == bad_position)
+        return_string << "Bad Positioning input file for player " << looser << " - line " << line_number;
+    else if (player_1_reason == bad_move || player_2_reason == bad_move)
+        return_string << "Bad Moves input file for player " << looser << " - line " << line_number;
+
+    return return_string;
+}
+
+void rps_game::writeOutputFile(const string &output_file_path, int winner) {
+    ofstream output_file(output_file_path);
+    output_file << "Winner: " << winner << std::endl;
+    output_file << "Reason: " << getReasonRepr(winner).str() << std::endl;
+    output_file << std::endl;
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            char player_1_piece = player_1_board->boardPiece(j, i).getPiece();
+            char player_2_piece = player_2_board->boardPiece(j, i).getPiece();
+            if (player_1_piece != 'E')
+                output_file << player_1_piece;
+            else if (player_2_piece != 'E')
+                output_file << std::tolower(player_2_piece, std::locale());
+            else
+                output_file << ' ';
+        }
+        output_file << std::endl;
+    }
 
 }
 
-int rps_game::playGame(const string &positions_file_path_1, const string &movement_file_path_1,
-                       const string &positions_file_path_2, const string &movement_file_path_2,
+int rps_game::playGame(const string &positions_file_path_1, const string &positions_file_path_2,
+                       const string &movement_file_path_1, const string &movement_file_path_2,
                        const string &output_file_path) {
     int winner = initializeBoard(positions_file_path_1, positions_file_path_2);
     if (winner != -1)
@@ -108,8 +148,10 @@ int rps_game::playGame(const string &positions_file_path_1, const string &moveme
     player_1_board->updateBoardValidity();
     player_2_board->updateBoardValidity();
     winner = getWinner();
-    if (winner != -1)
+    if (winner != -1) {
+        writeOutputFile(output_file_path, winner);
         return winner;
+    }
 
     std::ifstream movement_file_1(movement_file_path_1);
     std::ifstream movement_file_2(movement_file_path_2);
@@ -119,6 +161,7 @@ int rps_game::playGame(const string &positions_file_path_1, const string &moveme
     bool is_valid;
     game_board *current_player_board = player_1_board;
     int current_player = 1;
+    bool is_player_1_done = false, is_player_2_done = false;
     while (true) {
         string line = nextLine(current_player == 1 ? movement_file_1 : movement_file_2);
         if (!line.empty()) {
@@ -127,31 +170,48 @@ int rps_game::playGame(const string &positions_file_path_1, const string &moveme
             if (!is_valid) {
                 winner = current_player == 1 ? 2 : 1;
                 std::cout << "Player " << winner << " won" << std::endl;
+                writeOutputFile(output_file_path, winner);
                 return winner;
             }
             handleElapsedCell(to_X, to_Y);
             player_1_board->updateBoardValidity();
             player_2_board->updateBoardValidity();
             winner = getWinner();
-            if (winner != -1)
+            if (winner != -1) {
+                writeOutputFile(output_file_path, winner);
                 return winner;
+            }
 
             if (should_change_joker)
                 current_player_board->alterJoker(joker_X, joker_Y, new_joker_rep);
 
+            if (!is_player_1_done && !is_player_2_done) {
+                if (current_player == 1) {
+                    current_player_board = player_2_board;
+                    current_player = 2;
+                } else {
+                    current_player_board = player_1_board;
+                    current_player = 1;
+                }
+            }
+        }
+        else {
             if (current_player == 1) {
+                is_player_1_done = true;
                 current_player_board = player_2_board;
                 current_player = 2;
             }
             else {
+                is_player_2_done = true;
                 current_player_board = player_1_board;
                 current_player = 1;
             }
-        }
-        else {
-            std::cout << "Tie" << std::endl;
-            return 0;
+            if (is_player_1_done && is_player_2_done)
+                break;
         }
     }
+    std::cout << "Tie" << std::endl;
+    writeOutputFile(output_file_path, winner);
+    return 0;
 
 }

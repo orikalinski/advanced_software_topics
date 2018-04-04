@@ -78,7 +78,7 @@ void game_board::initializeBoard() {
 }
 
 bool game_board::validateCoordinates(int X, int Y) {
-    if (X < 1 || X > M || Y < 1 || Y > N) {
+    if (X < 0 || X >= M || Y < 0 || Y >= N) {
         std::cout << "coordinates are out of range (" << X << "," << Y << ")" << std::endl;
         return false;
     }
@@ -215,6 +215,8 @@ bool game_board::readPiecesPositioning(string player_file_name) {
         char mimic_piece = 'E';
         bool is_valid;
         if ((iss >> piece >> X >> Y >> mimic_piece) && num_of_tokens == 4) {
+            X -= 1;
+            Y -= 1;
             is_valid = this->validatePositionRow(X, Y, piece);
             bool is_valid_joker = validateJokerPositioning(piece, mimic_piece);
             if (is_valid && is_valid_joker)
@@ -228,6 +230,8 @@ bool game_board::readPiecesPositioning(string player_file_name) {
             iss.clear();
             iss.str(line);
             if ((iss >> piece >> X >> Y) && num_of_tokens == 3) {
+                X -= 1;
+                Y -= 1;
                 is_valid = this->validatePositionRow(X, Y, piece);
                 if (is_valid)
                     this->insertRow(X, Y, piece);
@@ -254,12 +258,30 @@ bool game_board::readPieceMovement(string line, int &to_X, int &to_Y, int &joker
     int from_X = -1, from_Y = -1;
     char joker = 'E';
     bool is_valid;
-    if ((iss >> from_X >> from_Y >> to_X >> to_Y >> joker >> joker_X >> joker_Y >> new_rep) && num_of_tokens == 8) {
+    char semicolon = ' ';
+    if ((iss >> from_X >> from_Y >> to_X >> to_Y >> joker >> semicolon >> joker_X >> joker_Y >> new_rep) && num_of_tokens == 8) {
+        if (semicolon != ':') {
+            std::cout << "Expected semicolon (got " << semicolon << "instead)" << std::endl;
+            reason = bad_move;
+            return false;
+        }
+        from_X -= 1;
+        from_Y -= 1;
+        to_X -= 1;
+        to_Y -= 1;
+        joker_X -= 1;
+        joker_Y -= 1;
         is_valid = this->validateMovementRow(from_X, from_Y, to_X, to_Y);
         should_change_joker = true;
-        bool is_joker_valid = this->validateJokerAlter(joker, joker_X, joker_Y, new_rep);
-        if (is_valid && is_joker_valid) {
+
+        if (is_valid) {
             this->moveRow(from_X, from_Y, to_X, to_Y);
+            bool is_joker_valid = this->validateJokerAlter(joker, joker_X, joker_Y, new_rep);
+            if (!is_joker_valid) {
+                reason = bad_move;
+                return false;
+            }
+
         }
         else {
             reason = bad_move;
@@ -270,6 +292,10 @@ bool game_board::readPieceMovement(string line, int &to_X, int &to_Y, int &joker
         iss.clear();
         iss.str(line);
         if ((iss >> from_X >> from_Y >> to_X >> to_Y) && num_of_tokens == 4) {
+            from_X -= 1;
+            from_Y -= 1;
+            to_X -= 1;
+            to_Y -= 1;
             is_valid = this->validateMovementRow(from_X, from_Y, to_X, to_Y);
             if (is_valid)
                 this->moveRow(from_X, from_Y, to_X, to_Y);
@@ -316,6 +342,20 @@ bool game_board::updateBoardValidity() {
     this->is_board_valid = !checkZeroFlags() && !checkZeroMovingPieces();
 }
 
-string game_board::getReason() {
+int game_board::getReason() {
     return reason;
+}
+
+int game_board::getLineNumber() {
+    return line_number;
+}
+
+string game_board::getReasonString() {
+    switch (reason) {
+        case valid: return "Valid Board";
+        case flags: return "All flags are captured";
+        case moving_pieces: return "All moving PIECEs are eaten";
+        case bad_position: return "Bad Positioning input file - line: " + line_number;
+        case bad_move: return "Bad Moves input file - line: " + line_number;
+    }
 }

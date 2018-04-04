@@ -16,11 +16,6 @@
 using namespace std;
 
 enum Reason {valid, flags, moving_pieces, bad_position, bad_move};
-std::map<int, string> reason_to_string = {{valid, "Valid Board"}, {flags, "All flags of the opponent are captured"},
-                                          {moving_pieces, "All moving PIECEs of the opponent are eaten"},
-                                          {bad_position, "Bad Positioning input file - line: "},
-                                          {bad_move, ""}};
-
 typedef std::map<char, int> char_to_int_map;
 
 
@@ -98,7 +93,11 @@ public:
 
     void initializeLineNumber();
 
-    string getReason();
+    string getReasonString();
+
+    int getReason();
+
+    int getLineNumber();
 };
 
 
